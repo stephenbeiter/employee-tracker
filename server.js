@@ -24,18 +24,25 @@ function menuPrompt() {
     type: 'list',
     message: 'Please select an option:',
     choices: [
-      'View All Employees',
       'View All Departments',
       'View All Roles',
-      'View Employees By Department',
-      'View Employees By Manager',
+      'View All Employees',
       new inquirer.Separator(),
-      'Add New Employee',
       'Add New Department',
       'Add New Role',
+      'Add New Employee',
       new inquirer.Separator(),
-      "Change Employee's Role",
-      "Change Employee's Manager",
+      "Update Employee's Role",
+      'View Employees By Role',
+      new inquirer.Separator(),
+      "Update Employee's Manager",
+      'View Employees By Manager',
+      new inquirer.Separator(),
+      'View Department Staff and Budget',
+      new inquirer.Separator(),
+      'Delete Department',
+      'Delete Role',
+      'Delete Employee',
       new inquirer.Separator(),
       'Exit',
       new inquirer.Separator()
@@ -55,12 +62,16 @@ function menuPrompt() {
         return addEmployee();
       case 'Add New Department':
         return addDepartment();
+      case 'View Department Staff and Budget':
+        return empByDept();
+      case "Update Employee's Role":
+        return updateEmp();
       case "Exit":
         console.log('Goodbye!')
         connection.end()
     }
   })
-}
+};
 
 function reMenu() {
   inquirer.prompt(
@@ -77,7 +88,7 @@ function reMenu() {
       reMenu();
     }
   })
-}
+};
 
 // db query functions
 const allDepartments = () => {
@@ -87,7 +98,7 @@ const allDepartments = () => {
     console.log('--------------------')
     reMenu()
   })
-}
+};
 
 const allRoles = () => {
   connection.query('SELECT title, salary AS "Salary" FROM roles', (err, res) => {
@@ -96,16 +107,17 @@ const allRoles = () => {
     console.log('--------------------')
     reMenu()
   })
-}
+};
 
 const allEmployees = () => {
-  connection.query('SELECT first_name AS "First Name", last_name AS "Last Name", title AS "Job Title", department AS "Department", salary AS "Annual Salary", IFNULL((SELECT concat(first_name, " ", last_name) FROM employees AS emp WHERE employees.manager_id = emp.id), "None") AS "Manager" FROM employees LEFT JOIN roles ON employees.role_id = roles.id LEFT JOIN departments ON roles.department_id = departments.id', (err, res) => {
+  let sql = 'SELECT first_name AS "First Name", last_name AS "Last Name", title AS "Job Title", department AS "Department", salary AS "Annual Salary", IFNULL((SELECT concat(first_name, " ", last_name) FROM employees AS emp WHERE employees.manager_id = emp.id), "None") AS "Manager" FROM employees LEFT JOIN roles ON employees.role_id = roles.id LEFT JOIN departments ON roles.department_id = departments.id';
+  connection.query(sql, (err, res) => {
     if (err) throw err;
     console.table(res)
     console.log('--------------------')
     reMenu()
   })
-}
+};
 
 function addDepartment() {
   inquirer.prompt({
@@ -130,7 +142,7 @@ function addDepartment() {
       reMenu()
     })
   })
-}
+};
 
 function addRole() {
   let depts = [];
@@ -140,7 +152,7 @@ function addRole() {
     res.forEach(dept => {
       depts.push({ name: dept.department, value: dept.id, short: dept.department })
     })
-  })
+  });
 
   inquirer.prompt([
     {
@@ -186,7 +198,7 @@ function addRole() {
         reMenu()
       })
     })
-}
+};
 
 function addEmployee() {
   let roles = [];
@@ -196,7 +208,7 @@ function addEmployee() {
     res.forEach(role => {
       roles.push({ name: role.title, value: role.id, short: role.title })
     })
-  })
+  });
 
   let managers = [{ name: 'None', value: null, short: 'None' }];
 
@@ -205,7 +217,7 @@ function addEmployee() {
     res.forEach(manager => {
       managers.push({ name: manager.first_name + ' ' + manager.last_name, value: manager.id, short: manager.first_name })
     })
-  })
+  });
 
   inquirer.prompt([
     {
@@ -259,4 +271,82 @@ function addEmployee() {
       reMenu()
     })
   })
+};
+
+async function empByDept() {
+  let depts = [];
+
+  const mysqlProm = require('mysql2/promise');
+
+  const conProm = await mysqlProm.createConnection({
+    host: 'localhost',
+    port: 3306,
+    user: 'root',
+    password: 'Mypassql123',
+    database: 'employeesDB'
+  });
+
+  await conProm.query('SELECT * FROM departments').then(res => {
+    res[0].forEach(dept => {
+      depts.push({ name: dept.department, value: dept.id, short: dept.department })
+    });
+  });
+
+  try {
+    inquirer.prompt({
+      name: 'empByDept',
+      type: 'list',
+      choices: depts,
+      message: 'Select which department you would like to view:'
+    }).then(answer => {
+      let sql = 'SELECT first_name AS "First Name", last_name AS "Last Name", title AS "Job Title", department AS "Department", salary AS "Annual Salary", IFNULL((SELECT concat(first_name, " ", last_name) FROM employees AS emp WHERE employees.manager_id = emp.id), "None") AS "Manager" FROM employees LEFT JOIN roles ON employees.role_id = roles.id LEFT JOIN departments ON roles.department_id = departments.id WHERE departments.id = ?';
+      connection.query(sql, [answer.empByDept], (err, res) => {
+        if (err) throw err;
+        console.table(res)
+        console.log('--------------------')
+        reMenu();
+      })
+    })
+  } catch (err) {
+    console.log(err)
+  }
+};
+
+function updateEmp() {
+  let emps = [];
+  let roles = [];
+  connection.promise().query('SELECT * FROM employees')
+    .then(empQuery => {
+      empQuery[0].forEach(emp => {
+        emps.push({ name: emp.first_name + ' ' + emp.last_name, value: emp.id, short: emp.first_name + ' ' + emp.last_name })
+      })
+    })
+    .then(() => {
+      connection.query('SELECT * FROM roles', (err, res) => {
+        if (err) throw err;
+        res.forEach(role => {
+          roles.push({ name: role.title, value: role.id, short: role.title })
+        })
+      })
+    })
+    .then(() => {
+      inquirer.prompt([{
+        name: 'upEmp',
+        type: 'list',
+        choices: emps,
+        message: 'Select an employee to update their role:'
+      },
+      {
+        name: 'upRole',
+        type: 'list',
+        choices: roles,
+        message: "Select the employee's new role:"
+      }]).then(answers => {
+        connection.query(`UPDATE employees SET employees.role_id = ${answers.upRole} WHERE employees.id = ${answers.upEmp}`, (err, res) => {
+          if (err) throw err;
+          console.log("New role update was successful!")
+          reMenu();
+        })
+      })
+    })
 }
