@@ -19,69 +19,71 @@ connection.connect(err => {
 
 // prompt menu
 function menuPrompt() {
-  questions = [{
+  let menu = [
+    'View All Departments',
+    'View All Roles',
+    'View All Employees',
+    new inquirer.Separator(),
+    'Add New Department',
+    'Add New Role',
+    'Add New Employee',
+    new inquirer.Separator(),
+    'View Employees By Department',
+    'View Employees By Role',
+    'View Employees By Manager',
+    new inquirer.Separator(),
+    "Update Employee's Role",
+    "Update Employee's Manager",
+    new inquirer.Separator(),
+    'Delete Department',
+    'Delete Role',
+    'Delete Employee',
+    new inquirer.Separator(),
+    'Exit',
+    new inquirer.Separator()
+  ];
+
+  inquirer.prompt({
     name: 'menu',
     type: 'list',
     message: 'Please select an option:',
-    choices: [
-      'View All Departments',
-      'View All Roles',
-      'View All Employees',
-      new inquirer.Separator(),
-      'Add New Department',
-      'Add New Role',
-      'Add New Employee',
-      new inquirer.Separator(),
-      'View Employees By Department',
-      'View Employees By Role',
-      'View Employees By Manager',
-      new inquirer.Separator(),
-      "Update Employee's Role",
-      "Update Employee's Manager",
-      new inquirer.Separator(),
-      'Delete Department',
-      'Delete Role',
-      'Delete Employee',
-      new inquirer.Separator(),
-      'Exit',
-      new inquirer.Separator()
-    ]
-  }];
-  inquirer.prompt(questions).then(answer => {
-    switch (answer.menu) {
-      case 'View All Departments':
-        return allDepartments();
-      case 'View All Roles':
-        return allRoles();
-      case 'View All Employees':
-        return allEmployees();
-      case 'Add New Department':
-        return addDepartment();
-      case 'Add New Role':
-        return addRole();
-      case 'Add New Employee':
-        return addEmployee();
-      case 'View Employees By Department':
-        return empByDept();
-      case 'View Employees By Role':
-        return empByRole();
-      case 'View Employees By Manager':
-        return empByManager();
-      case "Update Employee's Role":
-        return updateRole();
-      case "Update Employee's Manager":
-        return updateManager();
-      case 'Delete Department':
-        return delDept();
-      case 'Delete Role':
-        return delRole();
-      case 'Delete Employee':
-        return delEmp();
-      case "Exit":
-        console.log('Goodbye!')
-        connection.end()
-    }
+    choices: menu
   })
+    .then(answer => {
+      switch (answer.menu) {
+        case 'View All Departments':
+          return allDepartments();
+        case 'View All Roles':
+          return allRoles();
+        case 'View All Employees':
+          return allEmployees();
+        case 'Add New Department':
+          return addDepartment();
+        case 'Add New Role':
+          return addRole();
+        case 'Add New Employee':
+          return addEmployee();
+        case 'View Employees By Department':
+          return empByDept();
+        case 'View Employees By Role':
+          return empByRole();
+        case 'View Employees By Manager':
+          return empByManager();
+        case "Update Employee's Role":
+          return updateRole();
+        case "Update Employee's Manager":
+          return updateManager();
+        case 'Delete Department':
+          return delDept();
+        case 'Delete Role':
+          return delRole();
+        case 'Delete Employee':
+          return delEmp();
+        case "Exit":
+          console.log('Goodbye!')
+          connection.end()
+      }
+    })
 };
 
 function reMenu(lastFunc) {
@@ -174,7 +176,7 @@ function getMgrs() {
 };
 
 // db query functions
-const allDepartments = () => {
+function allDepartments() {
   connection.query('SELECT department AS "Departments" FROM departments', (err, res) => {
     if (err) throw err;
     console.table(res)
@@ -183,7 +185,7 @@ const allDepartments = () => {
   })
 };
 
-const allRoles = () => {
+function allRoles() {
   connection.query('SELECT title AS "Job Title", salary AS "Salary", department AS "Department" FROM roles LEFT JOIN departments ON roles.department_id = departments.id', (err, res) => {
     if (err) throw err;
     console.table(res)
@@ -192,7 +194,7 @@ const allRoles = () => {
   })
 };
 
-const allEmployees = () => {
+function allEmployees() {
   let sql = 'SELECT first_name AS "First Name", last_name AS "Last Name", title AS "Job Title", department AS "Department", salary AS "Annual Salary", IFNULL((SELECT concat(first_name, " ", last_name) FROM employees AS emp WHERE employees.manager_id = emp.id), "") AS "Manager" FROM employees LEFT JOIN roles ON employees.role_id = roles.id LEFT JOIN departments ON roles.department_id = departments.id';
   connection.query(sql, (err, res) => {
     if (err) throw err;
