@@ -2,6 +2,7 @@
 ![License Badge](https://img.shields.io/badge/license-GNU%20GPLv3-green)
 ## Description
 CLI app designed to track employees, roles, and departments within your company.
+
 [Walkthrough Video](https://drive.google.com/file/d/1rXEM9xPSXrK1Q7ihUDum_nmDKTN2Y2L1/view)
 ## Table of Contents
 * [Installation](#Installation)
